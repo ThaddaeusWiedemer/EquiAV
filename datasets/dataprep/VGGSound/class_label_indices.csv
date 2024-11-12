@@ -1,0 +1,310 @@
+mid,index
+"female speech, woman speaking",0
+female singing,1
+"male speech, man speaking",2
+playing bassoon,3
+playing piano,4
+playing harp,5
+ambulance siren,6
+"race car, auto racing",7
+male singing,8
+playing bass guitar,9
+"playing violin, fiddle",10
+tap dancing,11
+orchestra,12
+playing acoustic guitar,13
+playing cello,14
+people booing,15
+playing electric guitar,16
+toilet flushing,17
+driving buses,18
+"motorboat, speedboat acceleration",19
+playing didgeridoo,20
+"pigeon, dove cooing",21
+"vehicle horn, car horn, honking",22
+playing banjo,23
+people crowd,24
+chicken crowing,25
+"rowboat, canoe, kayak rowing",26
+driving motorcycle,27
+"child speech, kid speaking",28
+playing flute,29
+"railroad car, train wagon",30
+playing accordion,31
+playing drum kit,32
+playing trombone,33
+chainsawing trees,34
+playing saxophone,35
+basketball bounce,36
+playing cymbal,37
+helicopter,38
+"playing marimba, xylophone",39
+singing bowl,40
+"engine accelerating, revving, vroom",41
+police car (siren),42
+fireworks banging,43
+"bird chirping, tweeting",44
+playing table tennis,45
+playing squash,46
+playing clarinet,47
+playing hammond organ,48
+people burping,49
+playing tabla,50
+playing glockenspiel,51
+playing harpsichord,52
+frog croaking,53
+vacuum cleaner cleaning floors,54
+playing theremin,55
+"subway, metro, underground",56
+slot machine,57
+playing badminton,58
+beat boxing,59
+child singing,60
+crow cawing,61
+playing volleyball,62
+car engine knocking,63
+playing snare drum,64
+machine gun shooting,65
+ocean burbling,66
+skiing,67
+civil defense siren,68
+missile launch,69
+playing erhu,70
+tractor digging,71
+bowling impact,72
+rope skipping,73
+airplane flyby,74
+lions roaring,75
+scuba diving,76
+yodelling,77
+playing bagpipes,78
+police radio chatter,79
+fire truck siren,80
+pheasant crowing,81
+arc welding,82
+"playing steel guitar, slide guitar",83
+dog howling,84
+wind noise,85
+playing bongo,86
+skateboarding,87
+playing synthesizer,88
+"electric shaver, electric razor shaving",89
+playing ukulele,90
+skidding,91
+cap gun shooting,92
+people clapping,93
+playing cornet,94
+people sniggering,95
+playing vibraphone,96
+mynah bird singing,97
+people whistling,98
+horse clip-clop,99
+printer printing,100
+baby laughter,101
+playing french horn,102
+playing bass drum,103
+cat purring,104
+playing sitar,105
+lathe spinning,106
+lawn mowing,107
+lighting firecrackers,108
+volcano explosion,109
+playing electronic organ,110
+playing trumpet,111
+dog growling,112
+playing harmonica,113
+playing mandolin,114
+people marching,115
+planing timber,116
+playing tambourine,117
+playing double bass,118
+church bell ringing,119
+gibbon howling,120
+goose honking,121
+tapping guitar,122
+sharpen knife,123
+train horning,124
+dog barking,125
+singing choir,126
+"heart sounds, heartbeat",127
+owl hooting,128
+people whispering,129
+woodpecker pecking tree,130
+typing on typewriter,131
+cattle mooing,132
+people screaming,133
+hail,134
+canary calling,135
+people cheering,136
+cricket chirping,137
+stream burbling,138
+people sneezing,139
+wood thrush calling,140
+roller coaster running,141
+"ice cream truck, ice cream van",142
+people shuffling,143
+baby crying,144
+mouse clicking,145
+francolin calling,146
+turkey gobbling,147
+"cattle, bovinae cowbell",148
+rapping,149
+dinosaurs bellowing,150
+playing timpani,151
+dog bow-wow,152
+using sewing machines,153
+chicken clucking,154
+splashing water,155
+hammering nails,156
+train whistling,157
+driving snowmobile,158
+duck quacking,159
+lions growling,160
+baby babbling,161
+car passing by,162
+parrot talking,163
+sailing,164
+cat meowing,165
+horse neighing,166
+people babbling,167
+sliding door,168
+playing timbales,169
+swimming,170
+wind rustling leaves,171
+people slurping,172
+typing on computer keyboard,173
+people eating noodle,174
+ripping paper,175
+elk bugling,176
+playing gong,177
+playing darts,178
+people farting,179
+"bee, wasp, etc. buzzing",180
+playing oboe,181
+playing zither,182
+eating with cutlery,183
+bouncing on trampoline,184
+people belly laughing,185
+sheep bleating,186
+waterfall burbling,187
+airplane,188
+playing steelpan,189
+fire crackling,190
+car engine starting,191
+coyote howling,192
+reversing beeps,193
+people sobbing,194
+playing guiro,195
+raining,196
+chimpanzee pant-hooting,197
+playing congas,198
+playing tympani,199
+dog whimpering,200
+opening or closing car doors,201
+opening or closing drawers,202
+people coughing,203
+black capped chickadee calling,204
+pig oinking,205
+people eating crisps,206
+playing bugle,207
+mosquito buzzing,208
+"donkey, ass braying",209
+squishing water,210
+mouse pattering,211
+playing djembe,212
+magpie calling,213
+electric grinder grinding,214
+people running,215
+underwater bubbling,216
+barn swallow calling,217
+firing muskets,218
+dog baying,219
+cheetah chirrup,220
+playing hockey,221
+striking pool,222
+people hiccup,223
+people humming,224
+playing tennis,225
+wind chime,226
+cat growling,227
+car engine idling,228
+ice cracking,229
+otter growling,230
+fox barking,231
+"alligators, crocodiles hissing",232
+people eating apple,233
+tornado roaring,234
+bird squawking,235
+hair dryer drying,236
+firing cannon,237
+train wheels squealing,238
+alarm clock ringing,239
+cupboard opening or closing,240
+striking bowling,241
+thunder,242
+cat hissing,243
+bull bellowing,244
+running electric fan,245
+penguins braying,246
+elephant trumpeting,247
+golf driving,248
+people battle cry,249
+snake hissing,250
+playing lacrosse,251
+writing on blackboard with chalk,252
+spraying water,253
+sloshing water,254
+people giggling,255
+cutting hair with electric trimmers,256
+lip smacking,257
+forging swords,258
+plastic bottle crushing,259
+warbler chirping,260
+chipmunk chirping,261
+bird wings flapping,262
+chopping wood,263
+popping popcorn,264
+eagle screaming,265
+footsteps on snow,266
+hedge trimmer running,267
+sea waves,268
+blowtorch igniting,269
+goat bleating,270
+air conditioning noise,271
+mouse squeaking,272
+ferret dooking,273
+cat caterwauling,274
+strike lighter,275
+people nose blowing,276
+people eating,277
+shot football,278
+smoke detector beeping,279
+people gargling,280
+cuckoo bird calling,281
+foghorn,282
+eletric blender running,283
+chinchilla barking,284
+people slapping,285
+sea lion barking,286
+opening or closing car electric windows,287
+children shouting,288
+metronome,289
+people finger snapping,290
+playing washboard,291
+door slamming,292
+chopping food,293
+cell phone buzzing,294
+baltimore oriole calling,295
+disc scratching,296
+telephone bell ringing,297
+playing shofar,298
+playing tuning fork,299
+bathroom ventilation fan running,300
+"fly, housefly buzzing",301
+whale calling,302
+cow lowing,303
+pumping water,304
+playing castanets,305
+zebra braying,306
+snake rattling,307
+air horn,308
