@@ -17,30 +17,37 @@ from PIL import Image, ImageFilter
 from torch import Tensor
 from decord import gpu
 
+
 # change python list to numpy array to avoid memory leak.
 def pro_data(data_json):
     for i in range(len(data_json)):
-        data_json[i] = [data_json[i]['wav'], data_json[i]['labels'], data_json[i]['video_id'], data_json[i]['video_path']]
+        data_json[i] = [
+            data_json[i]["wav"],
+            data_json[i]["labels"],
+            data_json[i]["video_id"],
+            data_json[i]["video_path"],
+        ]
     data_np = np.array(data_json, dtype=str)
     return data_np
 
+
 def make_index_dict(label_csv):
     index_lookup = {}
-    with open(label_csv, 'r') as f:
+    with open(label_csv, "r") as f:
         csv_reader = csv.DictReader(f)
         line_count = 0
         for row in csv_reader:
-            index_lookup[row['mid']] = row['index']
+            index_lookup[row["mid"]] = row["index"]
             line_count += 1
     return index_lookup
 
-    
+
 def _get_mask_param(mask_param: int, p: float, axis_length: int) -> int:
     if p == 1.0:
         return mask_param
     else:
         return min(mask_param, int(axis_length * p))
-    
+
 
 def mask_along_axis(
     specgram: Tensor,
@@ -91,7 +98,9 @@ def mask_along_axis(
 
     mask_start = (min_value.long()).squeeze()
     mask_end = (min_value.long() + value.long()).squeeze()
-    mask = torch.arange(0, specgram.shape[axis], device=specgram.device, dtype=specgram.dtype)
+    mask = torch.arange(
+        0, specgram.shape[axis], device=specgram.device, dtype=specgram.dtype
+    )
     mask = (mask >= mask_start) & (mask < mask_end)
     if axis == 1:
         mask = mask.unsqueeze(-1)
@@ -105,10 +114,11 @@ def mask_along_axis(
 
     return specgram, mask_start, mask_end
 
+
 class GaussianBlur(object):
     """Gaussian blur augmentation in SimCLR https://arxiv.org/abs/2002.05709"""
 
-    def __init__(self, sigma=[.1, 2.]):
+    def __init__(self, sigma=[0.1, 2.0]):
         self.sigma = sigma
 
     def __call__(self, x):
@@ -116,7 +126,9 @@ class GaussianBlur(object):
         x = x.filter(ImageFilter.GaussianBlur(radius=sigma))
         return x
 
+
 ## Main Dataset Code
+
 
 class MainDataset(Dataset):
     def __init__(self, dataset_file_name, label_csv, audio_conf, **kwargs):
@@ -125,67 +137,71 @@ class MainDataset(Dataset):
         :param audio_conf: Dictionary containing the audio loading and preprocessing settings
         :param dataset_file_name
         """
-        self.cen_mean = audio_conf.get('cen_mean', False)
-        self.cen_num = audio_conf.get('cen_num', 16)
+        self.cen_mean = audio_conf.get("cen_mean", False)
+        self.cen_num = audio_conf.get("cen_num", 16)
 
         self.datapath = dataset_file_name
 
-        with open(dataset_file_name, 'r') as f:
+        with open(dataset_file_name, "r") as f:
             data_json = json.load(f)
 
-        self.data = pro_data(data_json['data']) # list to numpy to avoid memory leaks
+        self.data = pro_data(data_json["data"])  # list to numpy to avoid memory leaks
 
         self.num_samples = self.data.shape[0]
 
-        self.label_smooth = audio_conf.get('label_smooth', 0.0)
-        self.melbins = audio_conf.get('nmels', 128)
-        
+        self.label_smooth = audio_conf.get("label_smooth", 0.0)
+        self.melbins = audio_conf.get("nmels", 128)
+
         # for augmentation
-        self.freqm = audio_conf.get('freqm', 0)
-        self.timem = audio_conf.get('timem', 0)
-        self.ft_freqm = audio_conf.get('ft_freqm', 0)
-        self.ft_timem = audio_conf.get('ft_timem', 0)
-        self.mixup = audio_conf.get('mixup', 0)
-        self.noise = audio_conf.get('noise', False)
+        self.freqm = audio_conf.get("freqm", 0)
+        self.timem = audio_conf.get("timem", 0)
+        self.ft_freqm = audio_conf.get("ft_freqm", 0)
+        self.ft_timem = audio_conf.get("ft_timem", 0)
+        self.mixup = audio_conf.get("mixup", 0)
+        self.noise = audio_conf.get("noise", False)
 
         # dataset spectrogram mean and std, used to normalize the input
-        self.norm_mean = audio_conf.get('mean', 0)
-        self.norm_std = audio_conf.get('std', 0)
-        
-        self.skip_norm = audio_conf.get('skip_norm') if audio_conf.get('skip_norm') else False
+        self.norm_mean = audio_conf.get("mean", 0)
+        self.norm_std = audio_conf.get("std", 0)
+
+        self.skip_norm = (
+            audio_conf.get("skip_norm") if audio_conf.get("skip_norm") else False
+        )
 
         self.index_dict = make_index_dict(label_csv)
-        self.label_num = len(self.index_dict)        
+        self.label_num = len(self.index_dict)
 
-        self.target_length = audio_conf.get('target_length')
+        self.target_length = audio_conf.get("target_length")
 
-        self.mode = audio_conf.get('mode', 'train')
+        self.mode = audio_conf.get("mode", "train")
 
-        self.frame_use = audio_conf.get('frame_use', -1)
-        self.total_frame = audio_conf.get('total_frame', 10)
+        self.frame_use = audio_conf.get("frame_use", -1)
+        self.total_frame = audio_conf.get("total_frame", 10)
 
-        self.im_res = audio_conf.get('im_res', 224)
+        self.im_res = audio_conf.get("im_res", 224)
 
-        self.preprocess = T.Compose([
-            T.Resize(self.im_res, interpolation=T.InterpolationMode.BICUBIC),
-            T.CenterCrop(self.im_res),
-            T.ToTensor(),
-            T.Normalize(
-                mean=[0.4850, 0.4560, 0.4060],
-                std=[0.2290, 0.2240, 0.2250]
-            )])
+        self.preprocess = T.Compose(
+            [
+                T.Resize(self.im_res, interpolation=T.InterpolationMode.BICUBIC),
+                T.CenterCrop(self.im_res),
+                T.ToTensor(),
+                T.Normalize(
+                    mean=[0.4850, 0.4560, 0.4060], std=[0.2290, 0.2240, 0.2250]
+                ),
+            ]
+        )
 
         ## Augmentation Config for Equivariant Learning
-        self.aug_size_a = audio_conf.get('aug_size_a', 0)
-        self.aug_size_v = audio_conf.get('aug_size_v', 0)
+        self.aug_size_a = audio_conf.get("aug_size_a", 0)
+        self.aug_size_v = audio_conf.get("aug_size_v", 0)
 
     # reformat numpy data to original json format, make it compatible with old code
     def decode_data(self, np_data):
         datum = {}
-        datum['wav'] = np_data[0]
-        datum['labels'] = np_data[1]
-        datum['video_id'] = np_data[2]
-        datum['video_path'] = np_data[3]
+        datum["wav"] = np_data[0]
+        datum["labels"] = np_data[1]
+        datum["video_id"] = np_data[2]
+        datum["video_path"] = np_data[3]
         return datum
 
     def get_image(self, filename, filename2=None, mix_lambda=1):
@@ -221,20 +237,30 @@ class MainDataset(Dataset):
                 if waveform1.shape[1] > waveform2.shape[1]:
                     # padding
                     temp_wav = torch.zeros(1, waveform1.shape[1])
-                    temp_wav[0, 0:waveform2.shape[1]] = waveform2
+                    temp_wav[0, 0 : waveform2.shape[1]] = waveform2
                     waveform2 = temp_wav
                 else:
                     # cutting
-                    waveform2 = waveform2[0, 0:waveform1.shape[1]]
+                    waveform2 = waveform2[0, 0 : waveform1.shape[1]]
 
             mix_waveform = mix_lambda * waveform1 + (1 - mix_lambda) * waveform2
             waveform = mix_waveform - mix_waveform.mean()
 
         try:
-            fbank = torchaudio.compliance.kaldi.fbank(waveform, htk_compat=True, sample_frequency=sr, use_energy=False, window_type='hanning', num_mel_bins=self.melbins, dither=0.0, frame_shift=10)
+            fbank = torchaudio.compliance.kaldi.fbank(
+                waveform,
+                htk_compat=True,
+                sample_frequency=sr,
+                use_energy=False,
+                window_type="hanning",
+                num_mel_bins=self.melbins,
+                dither=0.0,
+                frame_shift=10,
+            )
         except:
             fbank = torch.zeros([512, 128]) + 0.01
-            if gpu == 0: print('there is a loading error')
+            if gpu == 0:
+                print("there is a loading error")
 
         target_length = self.target_length
         n_frames = fbank.shape[0]
@@ -251,13 +277,17 @@ class MainDataset(Dataset):
         return fbank
 
     def randselect_img(self, video_id, video_path):
-        if self.mode == 'test':
-            frame_idx = int((self.total_frame) / 2) if self.frame_use == -1 else self.frame_use
+        if self.mode == "test":
+            frame_idx = (
+                int((self.total_frame) / 2) if self.frame_use == -1 else self.frame_use
+            )
 
         else:
-            frame_idx = random.randint(1, 10)-1
+            # frame_idx = random.randint(1, 10) - 1
+            frame_idx = random.randint(1, 10)
 
-        return f'{video_path}/frame_{str(frame_idx)}/{video_id}.jpg'
+        # return f'{video_path}/frame_{str(frame_idx)}/{video_id}.jpg'
+        return f"{video_path}/image-{str(frame_idx)}.jpeg"
 
     def get_raw_item(self, index):
 
@@ -266,60 +296,71 @@ class MainDataset(Dataset):
         label_indices = np.zeros(self.label_num) + (self.label_smooth / self.label_num)
 
         if random.random() < self.mixup:
-            mix_sample_idx = random.randint(0, self.num_samples-1)
+            mix_sample_idx = random.randint(0, self.num_samples - 1)
             mix_datum = self.data[mix_sample_idx]
             mix_datum = self.decode_data(mix_datum)
             # get the mixed fbank
             mix_lambda = np.random.beta(10, 10)
             try:
-                fbank = self._wav2fbank(datum['wav'], mix_datum['wav'], mix_lambda)
+                fbank = self._wav2fbank(datum["wav"], mix_datum["wav"], mix_lambda)
             except Exception as e:
                 fbank = torch.zeros([self.target_length, 128]) + 0.01
-                print('there is an error in loading audio')
+                print("there is an error in loading audio")
                 print(e)
 
             try:
-                image = self.get_image(self.randselect_img(datum['video_id'], datum['video_path']), self.randselect_img(mix_datum['video_id'], mix_datum['video_path']), mix_lambda)
+                image = self.get_image(
+                    self.randselect_img(datum["video_id"], datum["video_path"]),
+                    self.randselect_img(mix_datum["video_id"], mix_datum["video_path"]),
+                    mix_lambda,
+                )
             except Exception as e:
                 image = torch.zeros([3, self.im_res, self.im_res]) + 0.01
-                print('there is an error in loading image')
+                print("there is an error in loading image")
                 print(e)
-            
-            for label_str in datum['labels'].split(','):
-                label_indices[int(self.index_dict[label_str])] += mix_lambda * (1.0 - self.label_smooth)
-            for label_str in mix_datum['labels'].split(','):
-                label_indices[int(self.index_dict[label_str])] += (1.0 - mix_lambda) * (1.0 - self.label_smooth)
+
+            for label_str in datum["labels"].split(","):
+                label_indices[int(self.index_dict[label_str])] += mix_lambda * (
+                    1.0 - self.label_smooth
+                )
+            for label_str in mix_datum["labels"].split(","):
+                label_indices[int(self.index_dict[label_str])] += (1.0 - mix_lambda) * (
+                    1.0 - self.label_smooth
+                )
             label_indices = torch.FloatTensor(label_indices)
-            
 
         else:
             try:
-                fbank = self._wav2fbank(datum['wav'], None, 0)
+                fbank = self._wav2fbank(datum["wav"], None, 0)
             except Exception as e:
                 fbank = torch.zeros([self.target_length, 128]) + 0.01
-                print('there is an error in loading audio')
+                print("there is an error in loading audio")
                 print(e)
 
             try:
-                image = self.get_image(self.randselect_img(datum['video_id'], datum['video_path']), None, 0)
+                image = self.get_image(
+                    self.randselect_img(datum["video_id"], datum["video_path"]), None, 0
+                )
             except Exception as e:
-                print(self.randselect_img(datum['video_id'], datum['video_path']))
+                print(self.randselect_img(datum["video_id"], datum["video_path"]))
                 image = torch.zeros([3, self.im_res, self.im_res]) + 0.01
                 raw_image = None
-                print('there is an error in loading image')
+                print("there is an error in loading image")
                 print(e)
 
-            for label_str in datum['labels'].split(','):
+            for label_str in datum["labels"].split(","):
                 label_indices[int(self.index_dict[label_str])] = 1.0 - self.label_smooth
             label_indices = torch.FloatTensor(label_indices)
 
-        raw_image = Image.open(self.randselect_img(datum['video_id'], datum['video_path']))
+        raw_image = Image.open(
+            self.randselect_img(datum["video_id"], datum["video_path"])
+        )
 
         ##################### Augmented For Downstream tasks #######################
         # SpecAug, not do for eval set
         ft_freqm = torchaudio.transforms.FrequencyMasking(self.ft_freqm)
         ft_timem = torchaudio.transforms.TimeMasking(self.ft_timem)
-        
+
         fbank = torch.transpose(fbank, 0, 1)
         fbank = fbank.unsqueeze(0)
         if self.freqm != 0:
@@ -338,7 +379,9 @@ class MainDataset(Dataset):
 
         if self.noise == True:
             # fbank = fbank + torch.rand(fbank.shape[0], fbank.shape[1]) * np.random.rand() / 10
-            fbank = torch.roll(fbank, np.random.randint(-self.target_length, self.target_length), 0)
+            fbank = torch.roll(
+                fbank, np.random.randint(-self.target_length, self.target_length), 0
+            )
         ##############################################################################
 
         return fbank, image, raw_image, label_indices
@@ -348,58 +391,68 @@ class MainDataset(Dataset):
         # aug_size_a -> 7(SA+TS), 12(SA+TS+RRC), 21(SA+TS+RRC+CJ), 23(SA+TS+RRC+CJ+GB), 24(SA+TS+RRC+CJ+GB+HF)
         t_a_list = torch.tensor([])
         for idx in range(self.cen_num):
-            transform_nums = torch.zeros(self.aug_size_a) # default transform, colorjitter, grayscale, blur, flip
+            transform_nums = torch.zeros(
+                self.aug_size_a
+            )  # default transform, colorjitter, grayscale, blur, flip
 
             min_scale = 0.08
 
             tm_value = torch.rand(1) * self.timem
             tm_min_value = torch.rand(1) * (1024 - tm_value)
-            tm_start, tm_end = (tm_min_value.long()).squeeze(), (tm_min_value.long() + tm_value.long()).squeeze()
+            tm_start, tm_end = (tm_min_value.long()).squeeze(), (
+                tm_min_value.long() + tm_value.long()
+            ).squeeze()
 
             fm_value = torch.rand(1) * self.freqm
             fm_min_value = torch.rand(1) * (128 - fm_value)
-            fm_start, fm_end = (fm_min_value.long()).squeeze(), (fm_min_value.long() + fm_value.long()).squeeze()
+            fm_start, fm_end = (fm_min_value.long()).squeeze(), (
+                fm_min_value.long() + fm_value.long()
+            ).squeeze()
 
             # SpecAug
             # time masking
             if self.aug_size_a >= 7:
                 if random.uniform(0, 1) < 0.8:
-                    transform_nums[0] = 1 # SpecAug on/off
+                    transform_nums[0] = 1  # SpecAug on/off
                     transform_nums[1] = tm_start
                     transform_nums[2] = tm_end
                     transform_nums[3] = fm_start
                     transform_nums[4] = fm_end
                     # Time Shifting
-                    transform_nums[5] = 1 # Time Shifting on/off
+                    transform_nums[5] = 1  # Time Shifting on/off
                     ts_nu = np.random.randint(-1024, 1024)
                     transform_nums[6] = ts_nu / (1024)
 
             # Vision Augmentation
             # Random Resized Crop
             if self.aug_size_a >= 12:
-                transform_nums[7] = 1 # RRC on/off
-                img = torch.rand(3,1024,128)
-                i, j, h, w = T.RandomResizedCrop.get_params(img, scale=(min_scale, 1.0), ratio=(1.0 / 10.0, 1.5 / 8.0))
-                _, num_t, num_f = img.shape 
-                transform_nums[8] = i / num_f # top left
+                transform_nums[7] = 1  # RRC on/off
+                img = torch.rand(3, 1024, 128)
+                i, j, h, w = T.RandomResizedCrop.get_params(
+                    img, scale=(min_scale, 1.0), ratio=(1.0 / 10.0, 1.5 / 8.0)
+                )
+                _, num_t, num_f = img.shape
+                transform_nums[8] = i / num_f  # top left
                 transform_nums[9] = j / num_t
                 transform_nums[10] = h / num_f
-                transform_nums[11] = w / num_t   
-                
+                transform_nums[11] = w / num_t
+
             # Color jitter
             if self.aug_size_a >= 21:
                 if random.uniform(0, 1) < 0.8:
                     fn_idx = torch.randperm(4)
-                    transform_nums[12] = 1 # CJ on/off
+                    transform_nums[12] = 1  # CJ on/off
                     transform_nums[13:17] = fn_idx
-                    _, b, c, s, h = T.ColorJitter.get_params([0.6,1.4],[0.6,1.4],[0.6,1.4],[-0.1,0.1])
+                    _, b, c, s, h = T.ColorJitter.get_params(
+                        [0.6, 1.4], [0.6, 1.4], [0.6, 1.4], [-0.1, 0.1]
+                    )
                     for fn_id in fn_idx:
                         if fn_id == 0:
-                            transform_nums[17] = b-1
+                            transform_nums[17] = b - 1
                         elif fn_id == 1:
-                            transform_nums[18] = c-1
+                            transform_nums[18] = c - 1
                         elif fn_id == 2:
-                            transform_nums[19] = s-1
+                            transform_nums[19] = s - 1
                         elif fn_id == 3:
                             transform_nums[20] = h
                 else:
@@ -408,29 +461,28 @@ class MainDataset(Dataset):
             # Gaussian Blur
             if self.aug_size_a >= 23:
                 if random.uniform(0, 1) < 0.5:
-                    transform_nums[21] = 1 # GB on/off
-                    sigma = random.uniform(.1, 2.)
+                    transform_nums[21] = 1  # GB on/off
+                    sigma = random.uniform(0.1, 2.0)
                     transform_nums[22] = sigma
 
             # Horizontal Flip
             if self.aug_size_a >= 24:
                 if random.uniform(0, 1) < 0.5:
-                    transform_nums[23] = 1 # HF on/off    
+                    transform_nums[23] = 1  # HF on/off
 
             # Volume Jittering
             if self.aug_size_a >= 26:
                 if random.uniform(0, 1) < 0.5:
-                    transform_nums[24] = 1 # HF on/off    
-                    transform_nums[25] = random.uniform(1.-self.vol, 1.+self.vol)
+                    transform_nums[24] = 1  # HF on/off
+                    transform_nums[25] = random.uniform(1.0 - self.vol, 1.0 + self.vol)
 
             transform_nums = transform_nums.unsqueeze(0)
             if idx == 0:
                 t_a_list = transform_nums.float()
             else:
-                t_a_list = torch.cat([t_a_list,transform_nums.float()],dim=0)
+                t_a_list = torch.cat([t_a_list, transform_nums.float()], dim=0)
 
         return t_a_list
-
 
     def sample_t_v(self):
         # initialize transform parameters
@@ -438,33 +490,39 @@ class MainDataset(Dataset):
         t_v_list = torch.tensor([])
 
         for idx in range(self.cen_num):
-            transform_nums = torch.zeros(self.aug_size_v) # default transform, colorjitter, grayscale, blur, flip
+            transform_nums = torch.zeros(
+                self.aug_size_v
+            )  # default transform, colorjitter, grayscale, blur, flip
 
             min_scale = 0.08
 
             if self.aug_size_v >= 16:
-                transform_nums[0] = 1 # RRC on/off
-                img = torch.rand(3,224,224)
+                transform_nums[0] = 1  # RRC on/off
+                img = torch.rand(3, 224, 224)
 
-                i, j, h, w = T.RandomResizedCrop.get_params(img, scale=(min_scale, 1.0), ratio=(3.0 / 4.0, 4.0 / 3.0))
+                i, j, h, w = T.RandomResizedCrop.get_params(
+                    img, scale=(min_scale, 1.0), ratio=(3.0 / 4.0, 4.0 / 3.0)
+                )
                 width, height = 224, 224
-                transform_nums[1] = i / height # top left
+                transform_nums[1] = i / height  # top left
                 transform_nums[2] = j / width
                 transform_nums[3] = h / height
                 transform_nums[4] = w / width
 
                 if random.uniform(0, 1) < 0.8:
                     fn_idx = torch.randperm(4)
-                    transform_nums[5] = 1 # CJ on/off
+                    transform_nums[5] = 1  # CJ on/off
                     transform_nums[6:10] = fn_idx
-                    _, b, c, s, h = T.ColorJitter.get_params([0.6,1.4],[0.6,1.4],[0.6,1.4],[-0.1,0.1])
+                    _, b, c, s, h = T.ColorJitter.get_params(
+                        [0.6, 1.4], [0.6, 1.4], [0.6, 1.4], [-0.1, 0.1]
+                    )
                     for fn_id in fn_idx:
                         if fn_id == 0:
-                            transform_nums[10] = b-1
+                            transform_nums[10] = b - 1
                         elif fn_id == 1:
-                            transform_nums[11] = c-1
+                            transform_nums[11] = c - 1
                         elif fn_id == 2:
-                            transform_nums[12] = s-1
+                            transform_nums[12] = s - 1
                         elif fn_id == 3:
                             transform_nums[13] = h
                 else:
@@ -472,45 +530,46 @@ class MainDataset(Dataset):
 
                 # Gaussian Blur
                 if random.uniform(0, 1) < 0.5:
-                    transform_nums[14] = 1 # GB on/off
-                    sigma = random.uniform(.1, 2.)
+                    transform_nums[14] = 1  # GB on/off
+                    sigma = random.uniform(0.1, 2.0)
                     transform_nums[15] = sigma
 
             if self.aug_size_v >= 18:
                 # if not simple:
                 # Horizontal Flip
                 if random.uniform(0, 1) < 0.5:
-                    transform_nums[16] = 1 # HF on/off
+                    transform_nums[16] = 1  # HF on/off
 
                 # Grayscale
                 if random.uniform(0, 1) < 0.2:
-                    transform_nums[17] = 1 # GS on/off
+                    transform_nums[17] = 1  # GS on/off
 
             if self.aug_size_v >= 21:
                 # Four-fold Rotation
                 if random.uniform(0, 1) < 0.5:
-                    transform_nums[18] = 1 # FR on/off
+                    transform_nums[18] = 1  # FR on/off
                     angle_idx = random.choice((0, 1, 2, 3))
                     transform_nums[19] = angle_idx
 
                 # Vertical Flip
                 if random.uniform(0, 1) < 0.5:
-                    transform_nums[20] = 1 # VF on/off
-            
-        
+                    transform_nums[20] = 1  # VF on/off
+
             transform_nums = transform_nums.unsqueeze(0)
 
             if idx == 0:
                 t_v_list = transform_nums.float()
             else:
-                t_v_list = torch.cat([t_v_list,transform_nums.float()],dim=0)
+                t_v_list = torch.cat([t_v_list, transform_nums.float()], dim=0)
 
         return t_v_list
 
     def _get_transform_a(self, fbank):
         # initialize transform parameters
         # aug_size_a -> 7(SA+TS), 12(SA+TS+RRC), 21(SA+TS+RRC+CJ), 23(SA+TS+RRC+CJ+GB), 24(SA+TS+RRC+CJ+GB+HF)
-        transform_nums = torch.zeros(self.aug_size_a) # default transform, colorjitter, grayscale, blur, flip
+        transform_nums = torch.zeros(
+            self.aug_size_a
+        )  # default transform, colorjitter, grayscale, blur, flip
         fbank = fbank.unsqueeze(0)  # 1 T F
         # transform_nums[12:16] = torch.arange(4)
         fbank = fbank.repeat(3, 1, 1)
@@ -521,50 +580,58 @@ class MainDataset(Dataset):
         # time masking
         if self.aug_size_a >= 7:
             if random.uniform(0, 1) < 0.8:
-                transform_nums[0] = 1 # SpecAug on/off
-                fbank, tm_start, tm_end = mask_along_axis(fbank, self.timem, mask_value=0.0, axis=1)
+                transform_nums[0] = 1  # SpecAug on/off
+                fbank, tm_start, tm_end = mask_along_axis(
+                    fbank, self.timem, mask_value=0.0, axis=1
+                )
                 # frequency masking
-                fbank, fm_start, fm_end = mask_along_axis(fbank, self.freqm, mask_value=0.0, axis=2)
+                fbank, fm_start, fm_end = mask_along_axis(
+                    fbank, self.freqm, mask_value=0.0, axis=2
+                )
                 transform_nums[1] = tm_start
                 transform_nums[2] = tm_end
                 transform_nums[3] = fm_start
                 transform_nums[4] = fm_end
-                
+
                 # Time Shifting
-                transform_nums[5] = 1 # Time Shifting on/off
+                transform_nums[5] = 1  # Time Shifting on/off
                 ts_nu = np.random.randint(-self.target_length, self.target_length)
                 transform_nums[6] = ts_nu / (self.target_length)
 
-                fbank = torch.roll(fbank, ts_nu, 0)    
+                fbank = torch.roll(fbank, ts_nu, 0)
 
         # Vision Augmentation
         # Random Resized Crop
         if self.aug_size_a >= 12:
-            transform_nums[7] = 1 # RRC on/off
-            i, j, h, w = T.RandomResizedCrop.get_params(fbank, scale=(min_scale, 1.0), ratio=(1.0 / 10.0, 1.5 / 8.0))
-            _, num_t, num_f = fbank.shape 
-            transform_nums[8] = i / num_f # top left
+            transform_nums[7] = 1  # RRC on/off
+            i, j, h, w = T.RandomResizedCrop.get_params(
+                fbank, scale=(min_scale, 1.0), ratio=(1.0 / 10.0, 1.5 / 8.0)
+            )
+            _, num_t, num_f = fbank.shape
+            transform_nums[8] = i / num_f  # top left
             transform_nums[9] = j / num_t
             transform_nums[10] = h / num_f
-            transform_nums[11] = w / num_t   
+            transform_nums[11] = w / num_t
             fbank = F.resized_crop(fbank, i, j, h, w, size=(num_t, num_f))
-            
+
         # Color jitter
         if self.aug_size_a >= 21:
             if random.uniform(0, 1) < 0.8:
                 fn_idx = torch.randperm(4)
-                transform_nums[12] = 1 # CJ on/off
+                transform_nums[12] = 1  # CJ on/off
                 transform_nums[13:17] = fn_idx
-                _, b, c, s, h = T.ColorJitter.get_params([0.6,1.4],[0.6,1.4],[0.6,1.4],[-0.1,0.1])
+                _, b, c, s, h = T.ColorJitter.get_params(
+                    [0.6, 1.4], [0.6, 1.4], [0.6, 1.4], [-0.1, 0.1]
+                )
                 for fn_id in fn_idx:
                     if fn_id == 0:
-                        transform_nums[17] = b-1
+                        transform_nums[17] = b - 1
                         fbank = F.adjust_brightness(fbank, b)
                     elif fn_id == 1:
-                        transform_nums[18] = c-1
+                        transform_nums[18] = c - 1
                         fbank = F.adjust_contrast(fbank, c)
                     elif fn_id == 2:
-                        transform_nums[19] = s-1
+                        transform_nums[19] = s - 1
                         fbank = F.adjust_saturation(fbank, s)
                     elif fn_id == 3:
                         transform_nums[20] = h
@@ -575,8 +642,8 @@ class MainDataset(Dataset):
         # Gaussian Blur
         if self.aug_size_a >= 23:
             if random.uniform(0, 1) < 0.5:
-                transform_nums[21] = 1 # GB on/off
-                sigma = random.uniform(.1, 2.)
+                transform_nums[21] = 1  # GB on/off
+                sigma = random.uniform(0.1, 2.0)
                 transform_nums[22] = sigma
                 # fbank = fbank.filter(ImageFilter.GaussianBlur(radius=sigma))
                 ks = math.ceil(sigma) * 2 + 1
@@ -585,7 +652,7 @@ class MainDataset(Dataset):
         # Horizontal Flip
         if self.aug_size_a >= 24:
             if random.uniform(0, 1) < 0.5:
-                transform_nums[23] = 1 # HF on/off
+                transform_nums[23] = 1  # HF on/off
                 fbank = F.hflip(fbank)
 
         return transform_nums.float(), fbank
@@ -593,34 +660,40 @@ class MainDataset(Dataset):
     def _get_transform_v(self, img):
         # initialize transform parameters
         # aug_size_v -> 18(RRC+CJ+GB+HF+GS), 21(RRC+CJ+GB+HF+GS+FR+VF)
-        transform_nums = torch.zeros(self.aug_size_v) # default transform, colorjitter, grayscale, blur, flip
+        transform_nums = torch.zeros(
+            self.aug_size_v
+        )  # default transform, colorjitter, grayscale, blur, flip
 
         min_scale = 0.08
 
         if self.aug_size_v >= 16:
-            transform_nums[0] = 1 # RRC on/off
-            i, j, h, w = T.RandomResizedCrop.get_params(img, scale=(min_scale, 1.0), ratio=(3.0 / 4.0, 4.0 / 3.0))
+            transform_nums[0] = 1  # RRC on/off
+            i, j, h, w = T.RandomResizedCrop.get_params(
+                img, scale=(min_scale, 1.0), ratio=(3.0 / 4.0, 4.0 / 3.0)
+            )
             width, height = F.get_image_size(img)
-            transform_nums[1] = i / height # top left
+            transform_nums[1] = i / height  # top left
             transform_nums[2] = j / width
             transform_nums[3] = h / height
             transform_nums[4] = w / width
-            img = F.resized_crop(img, i, j, h, w, size=(224,224))
+            img = F.resized_crop(img, i, j, h, w, size=(224, 224))
 
             if random.uniform(0, 1) < 0.8:
                 fn_idx = torch.randperm(4)
-                transform_nums[5] = 1 # CJ on/off
+                transform_nums[5] = 1  # CJ on/off
                 transform_nums[6:10] = fn_idx
-                _, b, c, s, h = T.ColorJitter.get_params([0.6,1.4],[0.6,1.4],[0.6,1.4],[-0.1,0.1])
+                _, b, c, s, h = T.ColorJitter.get_params(
+                    [0.6, 1.4], [0.6, 1.4], [0.6, 1.4], [-0.1, 0.1]
+                )
                 for fn_id in fn_idx:
                     if fn_id == 0:
-                        transform_nums[10] = b-1
+                        transform_nums[10] = b - 1
                         img = F.adjust_brightness(img, b)
                     elif fn_id == 1:
-                        transform_nums[11] = c-1
+                        transform_nums[11] = c - 1
                         img = F.adjust_contrast(img, c)
                     elif fn_id == 2:
-                        transform_nums[12] = s-1
+                        transform_nums[12] = s - 1
                         img = F.adjust_saturation(img, s)
                     elif fn_id == 3:
                         transform_nums[13] = h
@@ -630,40 +703,39 @@ class MainDataset(Dataset):
 
             # Gaussian Blur
             if random.uniform(0, 1) < 0.5:
-                transform_nums[14] = 1 # GB on/off
-                sigma = random.uniform(.1, 2.)
+                transform_nums[14] = 1  # GB on/off
+                sigma = random.uniform(0.1, 2.0)
                 transform_nums[15] = sigma
                 img = img.filter(ImageFilter.GaussianBlur(radius=sigma))
 
         if self.aug_size_v >= 18:
             # Horizontal Flip
             if random.uniform(0, 1) < 0.5:
-                transform_nums[16] = 1 # HF on/off
+                transform_nums[16] = 1  # HF on/off
                 img = F.hflip(img)
 
             # Grayscale
             if random.uniform(0, 1) < 0.2:
-                transform_nums[17] = 1 # GS on/off
+                transform_nums[17] = 1  # GS on/off
                 num_output_channels = F.get_image_num_channels(img)
                 img = F.rgb_to_grayscale(img, num_output_channels=num_output_channels)
 
-        
         if self.aug_size_v >= 21:
             # Four-fold Rotation
             if random.uniform(0, 1) < 0.5:
-                transform_nums[18] = 1 # FR on/off
+                transform_nums[18] = 1  # FR on/off
                 angle_idx = random.choice((0, 1, 2, 3))
                 transform_nums[19] = angle_idx
                 img = F.rotate(img, angle_idx * 90.0)
-            
+
             # Vertical Flip
             if random.uniform(0, 1) < 0.5:
-                transform_nums[20] = 1 # VF on/off
+                transform_nums[20] = 1  # VF on/off
                 img = F.vflip(img)
 
         img = F.to_tensor(img)
-        img = F.normalize(img, [0.485, 0.456, 0.406] , [0.229, 0.224, 0.225])
-        
+        img = F.normalize(img, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+
         return transform_nums.float(), img
 
     def __getitem__(self, index):
@@ -678,11 +750,20 @@ class MainDataset(Dataset):
             t_a_list = self.sample_t_a()
             t_v_list = self.sample_t_v()
 
-            return fbank, image, fbank_aug, image_aug, t_a, t_v, label_indices, t_a_list, t_v_list
+            return (
+                fbank,
+                image,
+                fbank_aug,
+                image_aug,
+                t_a,
+                t_v,
+                label_indices,
+                t_a_list,
+                t_v_list,
+            )
         else:
 
             return fbank, image, fbank_aug, image_aug, t_a, t_v, label_indices
 
-  
     def __len__(self):
         return self.num_samples

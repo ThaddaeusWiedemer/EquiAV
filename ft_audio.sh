@@ -12,8 +12,8 @@
 #SBATCH --mail-type=END,FAIL       # Type of email notification- END,FAIL
 #SBATCH --mail-user=thaddaeus.wiedemer@gmail.com # Email to which notifications will be sent
 
-# source ~/.bashrc
-source activate equiAV
+source ~/.bashrc
+conda activate $WORK/.conda/py-39-equiav
 
 cd $WORK/code/avd/models/equiav
 which python

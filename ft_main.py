@@ -223,7 +223,7 @@ args.train_list = f"/home/bethge/twiedemer43/code/avd/models/equiav/datasets/dat
 # args.verify_list = f"/home/lhk/workspace/ESSL/EquiAV/datasets/dataprep/{args.dataset}/test.json"
 args.verify_list = f"/home/bethge/twiedemer43/code/avd/models/equiav/datasets/dataprep/{args.dataset}/test.json"
 # args.label_csv = f"/home/lhk/workspace/ESSL/EquiAV/datasets/dataprep/{args.dataset}/class_labels_indices.csv"
-args.label_csv = f"/home/bethge/twiedemer43/code/avd/models/equiav/datasets/dataprep/{args.dataset}/class_labels_indices.csv"
+args.label_csv = f"/home/bethge/twiedemer43/code/avd/models/equiav/datasets/dataprep/{args.dataset}/class_label_indices.csv"
 
 weight_file = (
     f"/home/lhk/workspace/ESSL/EquiAV/datasets/dataprep/{args.dataset}/weights.csv"
