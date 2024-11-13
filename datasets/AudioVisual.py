@@ -283,11 +283,11 @@ class MainDataset(Dataset):
             )
 
         else:
-            # frame_idx = random.randint(1, 10) - 1
-            frame_idx = random.randint(1, 10)
+            frame_idx = random.randint(1, 10) - 1
+            # frame_idx = random.randint(1, 10)
 
-        # return f'{video_path}/frame_{str(frame_idx)}/{video_id}.jpg'
-        return f"{video_path}/image-{str(frame_idx)}.jpeg"
+        return f'{video_path}/frame_{str(frame_idx)}/{video_id}.jpg'
+        # return f"{video_path}/image-{str(frame_idx)}.jpeg"
 
     def get_raw_item(self, index):
 
